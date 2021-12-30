@@ -8,7 +8,6 @@ import java.util.List;
 import icai.dtc.isw.domain.Contenido;
 import icai.dtc.isw.domain.ContenidoFactory;
 import icai.dtc.isw.domain.Usuario;
-import icai.dtc.isw.domain.Pelicula;
 
 public class CustomerDAO {
 
@@ -107,6 +106,80 @@ public class CustomerDAO {
 	}
 
 	/**
+	 * Método para actualizar el estado de visualizacion de un usuario sobre un contenido. Actualiza y almacena el estado en la lista
+	 * relacional correspondiente
+	 * @param user usuario que hace el cambio de estado
+	 * @param contenido contenido que ha marcado el usuario
+	 * @param estado estado que ha elegido el usuario
+	 * @return confirmacion de la operacion
+	 */
+	public static int cambioEstado(int user, String contenido, String estado) {
+		Connection con=ConnectionDAO.getInstance().getConnection();
+		int cambioOk = 0;
+		int borradoOk = 0;
+		boolean encontrado = false;
+		String lista = "";
+		String tipo = "";
+		try (PreparedStatement pst = con.prepareStatement("SELECT titulo FROM peliculas WHERE titulo = '"+contenido+"'");
+			 ResultSet rs = pst.executeQuery()) {
+
+			while (rs.next()) {
+				encontrado = true;
+				lista = "\"listaPeliculas\"";
+				tipo = "pelicula";
+			}
+		} catch (SQLException ex) {
+
+			System.out.println(ex.getMessage());
+		}
+		if(!encontrado) {
+			try (PreparedStatement pst = con.prepareStatement("SELECT titulo FROM series WHERE titulo = '"+contenido+"'");
+				 ResultSet rs = pst.executeQuery()) {
+
+				while (rs.next()) {
+					encontrado = true;
+					lista = "\"listaSeries\"";
+					tipo = "serie";
+				}
+			} catch (SQLException ex) {
+
+				System.out.println(ex.getMessage());
+			}
+		}
+		if(encontrado) {
+			//borra anterior relacion (si la hubiese)
+			try {
+				PreparedStatement pst = con.prepareStatement("DELETE FROM "+lista+" WHERE "+tipo+" = '"+contenido+"' AND usuario = " +
+					user);
+				borradoOk = pst.executeUpdate();
+			} catch (SQLException ex) {
+
+				System.out.println(ex.getMessage());
+			}
+			if (estado.equals("BORRAR")) {
+				return borradoOk;
+			} else {
+				//añade la nueva
+				try {
+					PreparedStatement pst = con.prepareStatement("INSERT INTO "+lista+"(usuario,"+tipo+",estado) VALUES ("+user+", '"+
+							contenido+"', '"+estado+"')");
+					int i = pst.executeUpdate();
+					if (i > 0) {
+						cambioOk = 1;
+						return cambioOk;
+					} else {
+						return cambioOk;
+					}
+				} catch (SQLException ex) {
+
+					System.out.println(ex.getMessage());
+				}
+			}
+		}
+		return 0;
+	}
+
+	/**
 	 * Método para realizar la búsqueda de películas filtrada por los servicios establecidos como favoritos por el usuario.
 	 * <p>
 	 * Realiza dos querys: una para seleccionar los servicios favoritos, y otra para seleccionar el contenido disponible en
@@ -115,12 +188,13 @@ public class CustomerDAO {
 	 * @param serviciosQuery string que contiene los servicios favoritos del usuario redactados entre comas para
 	 *                       ser introducido en la query
 	 * @param catalogo string donde se especifica en que base datos se va a buscar
+	 * @param user usuario autenticado
 	 */
-	public static void buscaF(ArrayList<Contenido> lista, String serviciosQuery, String catalogo) {
+	public static void buscaF(ArrayList<Contenido> lista, String serviciosQuery, String catalogo,int user) {
 		Connection con=ConnectionDAO.getInstance().getConnection();
-
 		if(catalogo.equals("P")||catalogo.equals("A")) {
-			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM peliculas WHERE servicios && ('{"+serviciosQuery+"}')");
+			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM peliculas p FULL JOIN (SELECT * FROM \"listaPeliculas\" " +
+					"WHERE usuario = "+user+") l ON p.titulo=l.pelicula WHERE servicios && ('{"+serviciosQuery+"}')");
 				 ResultSet rs = pst.executeQuery()) {
 
 				while (rs.next()) {
@@ -132,7 +206,12 @@ public class CustomerDAO {
 					String director = rs.getString("director");
 					servicios.addAll(list);
 					String portada = rs.getString("portada");
-					lista.add(factory.getContenido("pelicula",titulo,director,servicios,portada));
+					Contenido c = factory.getContenido("pelicula",titulo,director,servicios,portada);
+					if (rs.getInt("usuario")!= 0){
+						String estado = rs.getString("estado");
+						c.setEstado(estado);
+					}
+					lista.add(c);
 				}
 
 			} catch (SQLException ex) {
@@ -142,7 +221,8 @@ public class CustomerDAO {
 		}
 
 		if(catalogo.equals("S")||catalogo.equals("A")) {
-			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM series WHERE servicios && ('{"+serviciosQuery+"}')");
+			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM series s FULL JOIN (SELECT * FROM \"listaSeries\" " +
+					"WHERE usuario = "+user+") l ON s.titulo=l.serie WHERE servicios && ('{"+serviciosQuery+"}')");
 				 ResultSet rs = pst.executeQuery()) {
 
 				while (rs.next()) {
@@ -154,7 +234,12 @@ public class CustomerDAO {
 					String director = rs.getString("director");
 					servicios.addAll(list);
 					String portada = rs.getString("portada");
-					lista.add(factory.getContenido("serie",titulo,director,servicios,portada));
+					Contenido c = factory.getContenido("serie",titulo,director,servicios,portada);
+					if (rs.getInt("usuario")!= 0){
+						String estado = rs.getString("estado");
+						c.setEstado(estado);
+					}
+					lista.add(c);
 				}
 
 			} catch (SQLException ex) {
@@ -172,12 +257,14 @@ public class CustomerDAO {
 	 * @param lista array donde se guardarán los resultados para su display en la ventana
 	 * @param nombre string introducido por el usuario
 	 * @param catalogo string donde se especifica en que base datos se va a buscar
+	 * @param user usuario autenticado
 	 */
-	public static void buscaN(ArrayList<Contenido> lista, String nombre,String catalogo) {
+	public static void buscaN(ArrayList<Contenido> lista, String nombre,String catalogo,int user) {
 		Connection con=ConnectionDAO.getInstance().getConnection();
 
 		if(catalogo.equals("P")||catalogo.equals("A")) {
-			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM peliculas WHERE titulo LIKE UPPER('%"+nombre+"%')");
+			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM peliculas p FULL JOIN (SELECT * FROM \"listaPeliculas\" " +
+					"WHERE usuario = "+user+") l ON p.titulo=l.pelicula WHERE titulo LIKE UPPER('%"+nombre+"%')");
 				 ResultSet rs = pst.executeQuery()) {
 
 				while (rs.next()) {
@@ -189,7 +276,12 @@ public class CustomerDAO {
 					String director = rs.getString("director");
 					String portada = rs.getString("portada");
 					servicios.addAll(list);
-					lista.add(factory.getContenido("pelicula",titulo,director,servicios,portada));
+					Contenido c = factory.getContenido("pelicula",titulo,director,servicios,portada);
+					if (rs.getInt("usuario")!= 0){
+						String estado = rs.getString("estado");
+						c.setEstado(estado);
+					}
+					lista.add(c);
 				}
 
 			} catch (SQLException ex) {
@@ -199,7 +291,8 @@ public class CustomerDAO {
 		}
 
 		if(catalogo.equals("S")||catalogo.equals("A")) {
-			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM series WHERE titulo LIKE UPPER('%"+nombre+"%')");
+			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM series s FULL JOIN (SELECT * FROM \"listaSeries\" " +
+					"WHERE usuario = "+user+") l ON s.titulo=l.serie WHERE titulo LIKE UPPER('%"+nombre+"%')");
 				 ResultSet rs = pst.executeQuery()) {
 
 				while (rs.next()) {
@@ -211,7 +304,12 @@ public class CustomerDAO {
 					String director = rs.getString("director");
 					String portada = rs.getString("portada");
 					servicios.addAll(list);
-					lista.add(factory.getContenido("serie",titulo,director,servicios,portada));
+					Contenido c = factory.getContenido("serie",titulo,director,servicios,portada);
+					if (rs.getInt("usuario")!= 0){
+						String estado = rs.getString("estado");
+						c.setEstado(estado);
+					}
+					lista.add(c);
 				}
 
 			} catch (SQLException ex) {
@@ -225,12 +323,14 @@ public class CustomerDAO {
 	 * Método para la muestra del catálogo completo contenido en la base de datos especificada en catalogo.
 	 * @param lista array donde se guardarán los resultados para su display en la ventana
 	 * @param catalogo string donde se especifica en que base datos se va a buscar
+	 * @param user usuario autenticado
 	 */
-	public static void buscaFull(ArrayList<Contenido> lista,String catalogo) {
+	public static void buscaFull(ArrayList<Contenido> lista,String catalogo,int user) {
 		Connection con=ConnectionDAO.getInstance().getConnection();
 
 		if(catalogo.equals("P")||catalogo.equals("A")){
-			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM peliculas");
+			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM peliculas p FULL JOIN (SELECT * FROM \"listaPeliculas\" " +
+					"WHERE usuario = "+user+") l ON p.titulo=l.pelicula");
 				 ResultSet rs = pst.executeQuery()) {
 
 				while (rs.next()) {
@@ -242,7 +342,12 @@ public class CustomerDAO {
 					String director = rs.getString("director");
 					servicios.addAll(list);
 					String portada = rs.getString("portada");
-					lista.add(factory.getContenido("pelicula",titulo,director,servicios,portada));
+					Contenido c = factory.getContenido("pelicula",titulo,director,servicios,portada);
+					if (rs.getInt("usuario")!= 0){
+						String estado = rs.getString("estado");
+						c.setEstado(estado);
+					}
+					lista.add(c);
 				}
 
 			} catch (SQLException ex) {
@@ -252,7 +357,8 @@ public class CustomerDAO {
 		}
 
 		if(catalogo.equals("S")||catalogo.equals("A")){
-			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM series");
+			try (PreparedStatement pst = con.prepareStatement("SELECT * FROM series s FULL JOIN (SELECT * FROM \"listaSeries\" " +
+					"WHERE usuario = "+user+") l ON s.titulo=l.serie");
 				 ResultSet rs = pst.executeQuery()) {
 
 				while (rs.next()) {
@@ -264,7 +370,12 @@ public class CustomerDAO {
 					String director = rs.getString("director");
 					servicios.addAll(list);
 					String portada = rs.getString("portada");
-					lista.add(factory.getContenido("serie",titulo,director,servicios,portada));
+					Contenido c = factory.getContenido("serie",titulo,director,servicios,portada);
+					if (rs.getInt("usuario")!= 0){
+						String estado = rs.getString("estado");
+						c.setEstado(estado);
+					}
+					lista.add(c);
 				}
 
 			} catch (SQLException ex) {

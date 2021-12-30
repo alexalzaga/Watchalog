@@ -7,8 +7,10 @@ public interface Contenido {
     void setDirector(String director);
     void setServicios(ArrayList<String> servicios);
     void setPortada(String portada);
+    void setEstado(String estado);
     String getTitulo();
     String getDirector();
     ArrayList<String> getServicios();
     String getPortada();
+    String getEstado();
 }

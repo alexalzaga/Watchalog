@@ -13,6 +13,7 @@ public class Pelicula implements Serializable,Contenido{
     private String director;
     ArrayList<String> servicios;
     private String portada;
+    private String estado;
 
     public Pelicula() {
         this.setTitulo(new String());
@@ -62,5 +63,13 @@ public class Pelicula implements Serializable,Contenido{
 
     public void setPortada(String portada) {
         this.portada = portada;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }

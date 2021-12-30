@@ -62,9 +62,19 @@ public class SocketServer extends Thread {
 					objectOutputStream.writeObject(mensajeOut);
 					break;
 
+				case "/cambioEstado":
+					int cambioOk = customerControler.cambioEstado((int)mensajeIn.getSession().get("usuario"),(String)mensajeIn.getSession().get("titulo"),(String)mensajeIn.getSession().get("estado"));
+					mensajeOut.setContext("/cambioEstadoResponse");
+					HashMap<String,Object> sessionEstado=new HashMap<String, Object>();
+					sessionEstado.put("cambio",cambioOk);
+					mensajeOut.setSession(sessionEstado);
+					objectOutputStream.writeObject(mensajeOut);
+					break;
+
 				case "/buscaF":
 					ArrayList<Contenido> listaContenido=new ArrayList<>();
-					customerControler.buscaF(listaContenido,(String)mensajeIn.getSession().get("serviciosQuery"),(String)mensajeIn.getSession().get("catalogo"));
+					customerControler.buscaF(listaContenido,(String)mensajeIn.getSession().get("serviciosQuery"),(String)mensajeIn.getSession().get("catalogo"),
+							(int)mensajeIn.getSession().get("usuario"));
 					mensajeOut.setContext("/buscaFResponse");
 					HashMap<String,Object> sessionBuscaF= new HashMap<>();
 					sessionBuscaF.put("listaPeliculas",listaContenido);
@@ -74,7 +84,8 @@ public class SocketServer extends Thread {
 
 				case "/buscaN":
 					ArrayList<Contenido> listaNombre=new ArrayList<>();
-					customerControler.buscaN(listaNombre,(String)mensajeIn.getSession().get("nombre"),(String)mensajeIn.getSession().get("catalogo"));
+					customerControler.buscaN(listaNombre,(String)mensajeIn.getSession().get("nombre"),(String)mensajeIn.getSession().get("catalogo"),
+							(int)mensajeIn.getSession().get("usuario"));
 					mensajeOut.setContext("/buscaNResponse");
 					HashMap<String,Object> sessionBuscaN= new HashMap<>();
 					sessionBuscaN.put("listaNombre",listaNombre);
@@ -84,7 +95,7 @@ public class SocketServer extends Thread {
 
 				case "/buscaFull":
 					ArrayList<Contenido> listaFull=new ArrayList<>();
-					customerControler.buscaFull(listaFull,(String)mensajeIn.getSession().get("catalogo"));
+					customerControler.buscaFull(listaFull,(String)mensajeIn.getSession().get("catalogo"),(int)mensajeIn.getSession().get("usuario"));
 					mensajeOut.setContext("/buscaFullResponse");
 					HashMap<String,Object> sessionFull=new HashMap<String, Object>();
 					sessionFull.put("listaFull",listaFull);

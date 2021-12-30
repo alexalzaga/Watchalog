@@ -50,6 +50,11 @@ public class Client {
 				session.put("user",mensajeVuelta.getSession().get("user"));
 				break;
 
+			case "/cambioEstadoResponse":
+				int cambioOk = (int)(mensajeVuelta.getSession().get("cambio"));
+				session.put("cambio",cambioOk);
+				break;
+
 			case "/buscaFResponse":
 				ArrayList<Contenido> listaPeliculas=(ArrayList<Contenido>)(mensajeVuelta.getSession().get("listaPeliculas"));
 				session.put("listaPeliculas",listaPeliculas);

@@ -13,6 +13,7 @@ public class Serie implements Serializable,Contenido{
     private String director;
     ArrayList<String> servicios;
     private String portada;
+    private String estado;
 
     public Serie() {
         this.setTitulo(new String());
@@ -54,5 +55,13 @@ public class Serie implements Serializable,Contenido{
 
     public void setPortada(String portada) {
         this.portada = portada;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }

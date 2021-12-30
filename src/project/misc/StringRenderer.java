@@ -20,6 +20,9 @@ public class StringRenderer extends JTextArea implements TableCellRenderer {
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         this.setText(value == null ? "" : value.toString());
+        if(isSelected || hasFocus){
+            setBackground(new Color(135,114,220,80));
+        }
         return this;
     }
 }

@@ -19,14 +19,18 @@ public class CustomerControler {
 		boolean ok = CustomerDAO.userLogin(password, nombre, user);
 		return ok;
 	}
-	public void buscaF(ArrayList<Contenido> lista, String serviciosQuery,String catalogo) {
-		CustomerDAO.buscaF(lista,serviciosQuery,catalogo);
+	public int cambioEstado(int user, String contenido, String estado) {
+		int cambioOk = CustomerDAO.cambioEstado(user, contenido, estado);
+		return cambioOk;
 	}
-	public void buscaN(ArrayList<Contenido> lista, String nombre,String catalogo) {
-		CustomerDAO.buscaN(lista,nombre,catalogo);
+	public void buscaF(ArrayList<Contenido> lista, String serviciosQuery,String catalogo,int user) {
+		CustomerDAO.buscaF(lista,serviciosQuery,catalogo,user);
 	}
-	public void buscaFull(ArrayList<Contenido> lista,String catalogo) {
-		CustomerDAO.buscaFull(lista,catalogo);
+	public void buscaN(ArrayList<Contenido> lista, String nombre,String catalogo,int user) {
+		CustomerDAO.buscaN(lista,nombre,catalogo,user);
+	}
+	public void buscaFull(ArrayList<Contenido> lista,String catalogo,int user) {
+		CustomerDAO.buscaFull(lista,catalogo,user);
 	}
 	public void aplicarServicios(Boolean n, Boolean h, Boolean p, Boolean d, Boolean c, String user) {
 		CustomerDAO.aplicarServicios(n,h,p,d,c,user);
